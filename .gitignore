@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.env
+dist/
+build/
+*.egg
+.pytest_cache/
+.mypy_cache/
+
+# Node / frontend
+node_modules/
+frontend/dist/
+frontend/.env
+*.tsbuildinfo
+
+# macOS
+.DS_Store
+
+# Secrets
+*.pem
+*.key
+credentials
