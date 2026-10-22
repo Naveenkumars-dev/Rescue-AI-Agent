@@ -1,0 +1,219 @@
+{
+ "pattern_tag": "#policy",
+ "agentcore_features": [],
+ "pattern_doc": "REUSABLE DECISION PATTERN: emergency-response triage policy  (#policy)\n\nWhat it does\n    Before RescueFlow AI shows a response recommendation for an incident, Strands Decider 2B\n    classifies the incident under a written emergency-response protocol and returns one of\n    allow / review / block:\n    - allow: the incident is clear, non-life-threatening and actionable; the prototype may propose\n      a response plan with available resources, for a human coordinator to approve.\n    - review: key information is missing or vague, the situation is borderline, or the decider is\n      unsure; a human coordinator must gather more information or confirm before anything is shown.\n    - block: the incident describes an immediate or probable threat to life or serious harm; it\n      must be escalated to professional emergency services and a human coordinator, and the\n      prototype must never auto-recommend or auto-dispatch a response for it.\n    Every number (a transparent preliminary priority score, the ranking of active incidents) is\n    computed in code by the tools and placed in the state as a fact; the decider reads it alongside\n    the incident prose and makes the judgement. It does not do arithmetic.\n\nTyped questions and options\n    priority (score): triage priority of this incident. [\"low\", \"medium\", \"high\", \"critical\"]\n    next_action (choice): the response action that fits right now.\n        - recommend_response_plan: enough is clearly known, with resources available, to propose a specific response plan\n        - request_missing_information: key details are missing or vague (location, number affected, hazard) and must be gathered first\n        - monitor: no action is needed yet; the incident is minor or already contained; keep watching and re-evaluate if it changes\n        - escalate_to_human: the situation is high-stakes or borderline; a human emergency coordinator must decide\n    life_safety (noul): does the report describe an immediate or probable threat to life or serious\n    harm that the protocol says must be escalated and never auto-handled by a prototype?\n\nWiring (where it sits in the agent's path)\n    `TriagePolicy` is a plain check run in `agent/agent.py` AFTER the Strands agent (on Amazon\n    Bedrock) has gathered facts with its tools and drafted a recommendation, and BEFORE the\n    recommendation is shown:\n        verdict = TriagePolicy(Decider()).check(state)\n        if verdict.action == \"block\":   reply = escalation_message(...)\n        elif verdict.action == \"review\": reply = hold_for_human(...)\n        else:                             reply = draft + approval_note(...)\n    One forward pass per turn; the verdict and its probabilities are appended to `.log` and shown\n    in the demo's decision panel. The thresholds that turn probabilities into actions live in\n    `decide()` \u2014 change them there, in code you own.\n\nHow to reuse it\n    Copy this file, rewrite `PROTOCOL` and the three questions for your safety-critical domain, and\n    keep the allow/review/block thresholds in `decide()`. Keep the rule: compute every number in a\n    tool and put the result in the state; let the decider read language, not do arithmetic.",
+ "questions_code": "QUESTIONS = {\n    \"priority\": Decider.score(\"How urgent is this incident for response priority?\", PRIORITY_LEVELS),\n    \"next_action\": Decider.choice(\n        \"Which response action fits this incident right now, given the facts and the other active incidents?\",\n        NEXT_ACTIONS,\n    ),\n    \"life_safety\": Decider.noul(\n        \"Does this incident describe an immediate or probable threat to life or serious harm (people trapped, injured, or a fast-moving danger) that the response protocol says must be escalated to professional emergency services and never auto-handled by a prototype?\",\n        {\"true\": \"an immediate or probable threat to life or serious harm is described\",\n         \"false\": \"no imminent threat to life or serious harm is described\"},\n    ),\n}",
+ "agent_md": "# Use case\n\nRescueFlow AI \u2014 an emergency-response decision-support agent. It triages incident reports,\nprioritizes competing incidents, recommends response actions, and decides when a human coordinator\nmust step in before anything is recommended. These answers drive the code, benchmark, README,\narticle and video.\n\n- **Pitch:** an emergency-response triage agent that reads incident reports, decides which need\n  attention first, and never auto-recommends a response for a life-safety incident.\n- **Who it is for:** emergency-response coordinators who triage many incoming reports at once and\n  need a clear priority, a recommended action, and a flag for what needs human verification.\n- **Features:**\n  - accepts incident reports in plain language and triages them;\n  - a transparent preliminary priority score is computed in code, and the cross-incident ranking too;\n  - Strands Decider 2B classifies each incident under a response protocol: allow / review / block;\n  - life-safety incidents are escalated and never auto-recommended or auto-dispatched;\n  - a live decision panel in the demo UI shows the triage verdict and its probabilities;\n  - deployed on Amazon Bedrock AgentCore Runtime.\n- **The decision handed to Strands Decider 2B:** before a response recommendation is shown, is the\n  incident clear, non-life-threatening and actionable, or must it be held / escalated under the\n  response protocol? (`#policy`)\n- **Why a decision model:** the triage judgement needs reading language (whether a report describes\n  a threat to life, what to do next, how urgent it is), runs on every incident, and must return a\n  confidence the code can branch on; the arithmetic (the score, the ranking) stays in code.\n- **Amazon Bedrock:** the conversation, fact extraction and tool use (Amazon Nova Pro by default).\n\nThis agent is a decision-support prototype. It never dispatches real emergency services, contacts\nreal people, or acts without a human approving a recommendation. It uses simulated resources.\n\nBuilt with the AWS User Group Madurai Strands Decider hackathon kit.\n",
+ "llm_provider_local_runs": "local",
+ "agent_name": "RescueFlow AI \u2014 emergency-response triage",
+ "bench": {
+  "summary": {
+   "decider": {
+    "accuracy": 0.7917,
+    "decisions": 24,
+    "per_question": {
+     "args_grounded": 0.9167,
+     "explicit_request": 0.6667
+    },
+    "latency_p50_ms": 294.8,
+    "latency_p95_ms": 467.6,
+    "usd_per_1k_decisions": 0.0,
+    "confident_share": 0.6667,
+    "accuracy_when_confident": 0.9375,
+    "sent_to_human_at_threshold": 8
+   },
+   "llm": {
+    "accuracy": 0.9583,
+    "decisions": 24,
+    "per_question": {
+     "args_grounded": 0.9167,
+     "explicit_request": 1.0
+    },
+    "latency_p50_ms": 1276.5,
+    "latency_p95_ms": 1426.1,
+    "usd_per_1k_decisions": 0.1785,
+    "confident_share": 1.0,
+    "accuracy_when_confident": 0.9583,
+    "sent_to_human_at_threshold": 0
+   },
+   "speedup_p50": 4.33
+  },
+  "decider_model": null,
+  "decider_mode": "local",
+  "llm_model": "us.amazon.nova-pro-v1:0",
+  "cases": 12,
+  "split": "all",
+  "threshold": 0.7
+ },
+ "bench_table": "| | Strands Decider 2B | us.amazon.nova-pro-v1:0 |\n|---|---|---|\n| Accuracy | 79.2% | 95.8% |\n| Latency p50 per decision | 295 ms | 1276 ms |\n| Latency p95 | 468 ms | 1426 ms |\n| Cost per 1,000 decisions | $0.0000 | $0.1785 |\n| Answered alone at confidence >= 0.7 | 67% | 100% |\n| Accuracy when confident | 93.8% | 95.8% |\n\nAt the median the decider was 4.3x faster than the LLM.\n",
+ "demo_turns": [
+  {
+   "user": "Evaluate incident INC-001: flood warning for the Riverside residential area. Water rising fast, residents may be trapped.",
+   "reply": "\ud83d\udea8 ESCALATE \u2014 life-safety incident\n\nIncident: INC-001 \u2014 Flood at Riverside low-lying residential area\nReport: Flood warning for the low-lying Riverside residential area. Water is rising rapidly and there are reports that some residents may be trapped.\n\nPriority: \ud83d\udd34 CRITICAL\nPreliminary risk score: 80/100 (arithmetic \u2014 severity/time/people/hazard)\nRecommended action: Escalate to human coordinator\nAvailable resources: Swift-water Rescue Boat Team x2, Reconnaissance Drone Unit x2\n\nTriage decision (block): Life-safety incident detected. Escalate to professional emergency services and a human coordinator. This prototype must not auto-recommend or dispatch.",
+   "decisions": [
+    {
+     "pattern": "#policy",
+     "verdict": "block",
+     "priority": "critical",
+     "next_action": "escalate_to_human",
+     "p_life_safety": 0.819,
+     "priority_probs": {
+      "low": 0.085,
+      "medium": 0.218,
+      "high": 0.346,
+      "critical": 0.351
+     },
+     "next_action_probs": {
+      "recommend_response_plan": 0.115,
+      "request_missing_information": 0.372,
+      "monitor": 0.012,
+      "escalate_to_human": 0.5
+     },
+     "life_safety_p_yes": 0.819,
+     "confident": false,
+     "reason": "Life-safety incident detected. Escalate to professional emergency services and a human coordinator. This prototype must not auto-recommend or dispatch.",
+     "decider_ms": 6728
+    }
+   ],
+   "latency_ms": 6728
+  },
+  {
+   "user": "Evaluate INC-002: a tree branch fell on Oak Lane. One lane blocked. No injuries reported.",
+   "reply": "\u26a0\ufe0f  Held for human review\n\nIncident: INC-002 \u2014 Road Obstruction at Oak Lane (secondary road)\nReport: A tree branch has fallen and is blocking one lane of Oak Lane, a secondary road. No injuries are confirmed and traffic can still pass on the other lane.\n\nPriority: \ud83d\udfe0 HIGH\nPreliminary risk score: 27/100 (arithmetic \u2014 severity/time/people/hazard)\nRecommended action: Gather more information\nAvailable resources: Road Clearance Crew x4\n\nTriage decision (review): Key information is missing or vague. Gather it before recommending a response.",
+   "decisions": [
+    {
+     "pattern": "#policy",
+     "verdict": "review",
+     "priority": "high",
+     "next_action": "request_missing_information",
+     "p_life_safety": 0.19,
+     "priority_probs": {
+      "low": 0.118,
+      "medium": 0.289,
+      "high": 0.335,
+      "critical": 0.258
+     },
+     "next_action_probs": {
+      "recommend_response_plan": 0.273,
+      "request_missing_information": 0.382,
+      "monitor": 0.02,
+      "escalate_to_human": 0.325
+     },
+     "life_safety_p_yes": 0.19,
+     "confident": false,
+     "reason": "Key information is missing or vague. Gather it before recommending a response.",
+     "decider_ms": 6437
+    }
+   ],
+   "latency_ms": 6437
+  },
+  {
+   "user": "Decision Arena: compare INC-001 (flood), INC-002 (road), INC-003 (power outage). Recommend priority order.",
+   "reply": "Decision Arena \u2014 Priority Order\n\n1. \ud83d\udea8 INC-001 \u2014 Flood at Riverside low-lying residential area\n   Priority: CRITICAL  |  Score: 80/100  |  Verdict: BLOCK\n   Life-safety incident detected. Escalate to professional emergency services and a human coordinator. This prototype must not auto-recommend or dispatch.\n\n2. \u26a0\ufe0f  INC-002 \u2014 Road Obstruction at Oak Lane (secondary road)\n   Priority: HIGH  |  Score: 27/100  |  Verdict: REVIEW\n   Key information is missing or vague. Gather it before recommending a response.\n\n3. \u26a0\ufe0f  INC-003 \u2014 Power Outage at Market Square small commercial area\n   Priority: MEDIUM  |  Score: 26/100  |  Verdict: REVIEW\n   Key information is missing or vague. Gather it before recommending a response.\n\nTrade-offs: higher-scored incidents consume more resources but may have uncertain details.\nWhat could change this: confirmed trapped persons, resource depletion, or new hazard reports.",
+   "decisions": [
+    {
+     "pattern": "#policy",
+     "verdict": "block",
+     "priority": "critical",
+     "next_action": "escalate_to_human",
+     "p_life_safety": 0.819,
+     "priority_probs": {
+      "low": 0.085,
+      "medium": 0.218,
+      "high": 0.346,
+      "critical": 0.351
+     },
+     "next_action_probs": {
+      "recommend_response_plan": 0.115,
+      "request_missing_information": 0.372,
+      "monitor": 0.012,
+      "escalate_to_human": 0.5
+     },
+     "life_safety_p_yes": 0.819,
+     "confident": false,
+     "reason": "Life-safety incident detected. Escalate to professional emergency services and a human coordinator. This prototype must not auto-recommend or dispatch.",
+     "decider_ms": 6175
+    },
+    {
+     "pattern": "#policy",
+     "verdict": "review",
+     "priority": "high",
+     "next_action": "request_missing_information",
+     "p_life_safety": 0.19,
+     "priority_probs": {
+      "low": 0.118,
+      "medium": 0.289,
+      "high": 0.335,
+      "critical": 0.258
+     },
+     "next_action_probs": {
+      "recommend_response_plan": 0.273,
+      "request_missing_information": 0.382,
+      "monitor": 0.02,
+      "escalate_to_human": 0.325
+     },
+     "life_safety_p_yes": 0.19,
+     "confident": false,
+     "reason": "Key information is missing or vague. Gather it before recommending a response.",
+     "decider_ms": 6208
+    },
+    {
+     "pattern": "#policy",
+     "verdict": "review",
+     "priority": "medium",
+     "next_action": "request_missing_information",
+     "p_life_safety": 0.121,
+     "priority_probs": {
+      "low": 0.209,
+      "medium": 0.341,
+      "high": 0.261,
+      "critical": 0.189
+     },
+     "next_action_probs": {
+      "recommend_response_plan": 0.192,
+      "request_missing_information": 0.58,
+      "monitor": 0.033,
+      "escalate_to_human": 0.195
+     },
+     "life_safety_p_yes": 0.121,
+     "confident": false,
+     "reason": "Key information is missing or vague. Gather it before recommending a response.",
+     "decider_ms": 6114
+    }
+   ],
+   "latency_ms": 18497
+  },
+  {
+   "user": "Update on INC-001: Resident confirmed trapped on first floor. Water now at chest height. Reassess.",
+   "reply": "\ud83d\udea8 ESCALATE \u2014 life-safety incident\n\nUpdated condition: Resident confirmed trapped on first floor. Water now at chest height.\n\nIncident: INC-001 \u2014 Flood at Riverside low-lying residential area\nReport: Flood warning for the low-lying Riverside residential area. Water is rising rapidly and there are reports that some residents may be trapped.\n\nPriority: \ud83d\udd34 CRITICAL\nPreliminary risk score: 80/100 (arithmetic \u2014 severity/time/people/hazard)\nRecommended action: Escalate to human coordinator\nAvailable resources: Swift-water Rescue Boat Team x2, Reconnaissance Drone Unit x2\n\nTriage decision (block): Life-safety incident detected. Escalate to professional emergency services and a human coordinator. This prototype must not auto-recommend or dispatch.",
+   "decisions": [
+    {
+     "pattern": "#policy",
+     "verdict": "block",
+     "priority": "critical",
+     "next_action": "escalate_to_human",
+     "p_life_safety": 0.789,
+     "priority_probs": {
+      "low": 0.085,
+      "medium": 0.201,
+      "high": 0.342,
+      "critical": 0.372
+     },
+     "next_action_probs": {
+      "recommend_response_plan": 0.151,
+      "request_missing_information": 0.35,
+      "monitor": 0.013,
+      "escalate_to_human": 0.486
+     },
+     "life_safety_p_yes": 0.789,
+     "confident": false,
+     "reason": "Life-safety incident detected. Escalate to professional emergency services and a human coordinator. This prototype must not auto-recommend or dispatch.",
+     "decider_ms": 6794
+    }
+   ],
+   "latency_ms": 6795
+  }
+ ],
+ "repo_url": "https://github.com/Naveenkumars-dev/Rescue-AI-Agent",
+ "video_url": ""
+}
