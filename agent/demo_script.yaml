@@ -1,0 +1,27 @@
+# What the demo video shows. Each turn is typed into the demo UI against your real agent.
+# `narrate` describes the situation only; make_video.py appends what the decider actually decided,
+# so the narration never claims something that did not happen. Keep it under about 2.5 minutes.
+title: "RescueFlow AI: an emergency-response triage agent that escalates life-safety incidents"
+# The project slide (shown after the title): a one-line pitch and the features worth showing.
+pitch: "An emergency-response triage agent that reads incident reports, ranks competing incidents, and never auto-recommends a response for a life-safety case."
+features:
+  - "accepts incident reports in plain language and triages them"
+  - "a transparent preliminary priority score, computed in code, in the state the decider reads"
+  - "Strands Decider 2B classifies each incident under a response protocol: allow / review / block"
+  - "life-safety incidents are escalated to professional services, never auto-dispatched"
+  - "runs on Amazon Bedrock AgentCore Runtime"
+# RescueFlow does not use eager mode; the protocol gate is the decision shown.
+eager: false
+intro: "RescueFlow AI talks through Amazon Bedrock. A coordinator reports incidents in plain language; the agent gathers facts with its tools and Strands Decider 2B classifies each incident under the response protocol before any recommendation is shown."
+# Used instead of `intro` when the video records the deployed agent.
+intro_normal: "RescueFlow AI runs on Amazon Bedrock AgentCore Runtime and talks through Amazon Bedrock. The agent gathers facts with its tools, and Strands Decider 2B classifies each incident under the response protocol before any recommendation is shown."
+turns:
+  - say: "Flood warning for the Riverside residential area. Water is rising fast and some residents may be trapped. Compare it with the other active incidents."
+    narrate: "A life-safety report: rising water and possibly trapped residents. The decider must not let the prototype auto-recommend; it should flag the life-safety signal and hold it for a human coordinator."
+  - say: "A branch has fallen and is blocking one lane of Oak Lane, a secondary road. No one is hurt and the other lane is clear."
+    narrate: "A clear, non-life-threatening obstruction. The decider should allow a response plan with a road crew, for human approval."
+  - say: "Power outage around Market Square, a small commercial area. No hazard reported, a few shops are without electricity."
+    narrate: "A minor incident. The decider should allow monitoring rather than commit resources."
+  - say: "Update on Riverside: the trapped residents have been confirmed and evacuated, water is now receding. Reassess."
+    narrate: "New information changes the picture. The reassessment shows how the decision updates as facts arrive."
+outro: "One forward pass per incident, typed triage answers with a confidence the code can branch on, and Amazon Bedrock for the conversation. Built with the AWS User Group Madurai Strands Decider hackathon kit."

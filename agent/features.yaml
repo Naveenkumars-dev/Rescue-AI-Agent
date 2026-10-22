@@ -1,0 +1,18 @@
+# Amazon Bedrock AgentCore features for this agent. The /new-agent interview fills this in;
+# `./kit deploy` adds what is enabled to deploy/agentcore/agentcore.json (via the AgentCore CLI)
+# and deploys it with the runtime. Use them from the agent through decider_kit/agentcore.py.
+#
+# RescueFlow AI uses neither: the AgentCore Runtime alone puts the agent on AWS. The in-memory
+# registry stands in for the storage the use case would use in a real deployment.
+
+memory:                    # AgentCore Memory: long-term memory across sessions. Pairs with #context-memory:
+  enabled: false           # the decider picks which recalled records go in the prompt and what is worth storing.
+  name: agentmemory        # runtime env var MEMORY_AGENTMEMORY_ID (letters, digits and _ only)
+  strategies: [SEMANTIC, EPISODIC]
+  expiry_days: 30
+
+gateway:                   # AgentCore Gateway: many tools behind one MCP endpoint. Pairs with #tool-selection
+  enabled: false           # (the decider picks the tool for each request) or #guardrails (it checks the call).
+  name: tools              # runtime env var AGENTCORE_GATEWAY_TOOLS_URL
+  authorizer: AWS_IAM      # AWS_IAM (the runtime's role signs calls) or NONE
+  targets: []              # RescueFlow's tools are local @tool functions with mock data.
