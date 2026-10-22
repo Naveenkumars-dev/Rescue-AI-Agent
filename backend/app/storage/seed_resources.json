@@ -1,0 +1,10 @@
+[
+  {"name": "Swift-water Rescue Boat Team", "type": "water_rescue", "count": 2, "status": "available", "suited_for": ["flood"]},
+  {"name": "Ambulance Unit", "type": "medical", "count": 5, "status": "available", "suited_for": ["collision", "fire", "medical"]},
+  {"name": "Fire Engine", "type": "fire", "count": 3, "status": "available", "suited_for": ["fire", "gas leak", "rescue"]},
+  {"name": "Hazmat Team", "type": "hazmat", "count": 1, "status": "available", "suited_for": ["gas leak", "chemical"]},
+  {"name": "Road Clearance Crew", "type": "roads", "count": 4, "status": "available", "suited_for": ["road obstruction", "debris"]},
+  {"name": "Power Utility Crew", "type": "utility", "count": 2, "status": "available", "suited_for": ["power outage", "power line"]},
+  {"name": "Search and Rescue Team", "type": "search", "count": 1, "status": "deployed", "suited_for": ["lost person", "flood"]},
+  {"name": "Reconnaissance Drone Unit", "type": "recon", "count": 2, "status": "available", "suited_for": ["flood", "search", "fire"]}
+]
