@@ -1,0 +1,51 @@
+sequenceDiagram
+    actor Coordinator as Coordinator
+    participant UI as React Dashboard
+    participant API as FastAPI Server
+    participant Agent as HackathonAgent
+    participant Tools as Agent Tools
+    participant Policy as TriagePolicy
+    participant Decider as Strands Decider 2B
+
+    Coordinator->>UI: Submit incident report or select incident
+    UI->>API: POST /api/incidents/{id}/evaluate
+    API->>Agent: direct_evaluate(incident_id)
+
+    Agent->>Tools: Lookup seeded incident data
+    Tools-->>Agent: incident facts (type, location, hazards, affected_people)
+
+    Agent->>Tools: calculate_preliminary_risk(severity, time, people, hazard)
+    Note over Tools: Arithmetic only — 0-100 score<br/>Not the model's judgement
+    Tools-->>Agent: preliminary_score: 80
+
+    Agent->>Tools: get_resource_status(incident_type)
+    Tools-->>Agent: Available: Swift-water Boat x2, Ambulance x5
+
+    Agent->>Tools: list_active_incidents() [for comparison context]
+    Tools-->>Agent: 10 active incidents ranked by score
+
+    Agent->>Policy: build_state(report, facts, others, draft)
+    Note over Policy: Assembles state text:<br/>protocol + report + facts + comparison + draft
+
+    Policy->>Decider: POST /v1/decide<br/>state + 3 typed questions
+    Note over Decider: One forward pass<br/>priority (score)<br/>next_action (choice)<br/>life_safety (noul)
+    Decider-->>Policy: {priority: critical, next_action: escalate,<br/>life_safety: p_yes=0.82} in ~7s
+
+    Policy->>Policy: decide(answers)<br/>p_yes≥0.6 AND confident → BLOCK
+    Policy-->>Agent: Verdict: BLOCK · reason: life-safety detected
+
+    Agent-->>API: reply + decisions log
+    API->>Tools: save_decision_record(id, decision, reason, status=PROPOSED)
+    API-->>UI: {decision: PROPOSED, triage_verdict: block, priority: CRITICAL}
+
+    UI-->>Coordinator: 🚨 ESCALATE — life-safety incident<br/>Decision panel: probability bars + reason
+
+    Coordinator->>UI: Condition change: "Resident confirmed trapped"
+    UI->>API: POST /api/incidents/{id}/reassess {update: "..."}
+    API->>Agent: direct_evaluate(id, context_update="...")
+    Agent->>Policy: build_state(updated_report, facts, others, draft)
+    Policy->>Decider: POST /v1/decide [updated state]
+    Decider-->>Policy: {priority: critical, life_safety: p_yes=0.79}
+    Policy-->>Agent: Verdict: BLOCK (reassessed)
+    API-->>UI: Updated decision — still BLOCK, evidence updated
+    UI-->>Coordinator: Reassessment complete — CRITICAL BLOCK confirmed

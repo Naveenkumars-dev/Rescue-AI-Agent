@@ -1,0 +1,57 @@
+graph TD
+    subgraph Browser["Browser (User / Coordinator)"]
+        UI["React Dashboard<br/>Vite · TypeScript · Tailwind · Recharts"]
+    end
+
+    subgraph Backend["FastAPI Demo Server — demo/server.py"]
+        API["12 REST Endpoints<br/>POST /api/incidents/{id}/evaluate<br/>POST /api/decisions/evaluate<br/>POST /api/incidents/{id}/reassess<br/>+ 9 more"]
+    end
+
+    subgraph Agent["Strands Agent — agent/agent.py"]
+        HA["HackathonAgent<br/>direct_evaluate() · compare_incidents() · chat()"]
+        TP["TriagePolicy<br/>build_state() → TriagePolicy.check()"]
+    end
+
+    subgraph Decision["Strands Decider 2B — #policy"]
+        DEC["Hosted API<br/>ugmdu / Amazon Bedrock AgentCore<br/>3 typed questions — 1 forward pass"]
+    end
+
+    subgraph Tools["Agent Tools — agent/tools.py"]
+        T1["get_incident_details"]
+        T2["list_active_incidents"]
+        T3["get_resource_status"]
+        T4["calculate_preliminary_risk"]
+        T5["identify_information_gaps"]
+        T6["compare_incidents"]
+        T7["propose_response_plan"]
+        T8["save_decision_record"]
+    end
+
+    subgraph Data["Seeded Mock Data"]
+        D1["agent/data/incidents.json<br/>10 seed incidents"]
+        D2["agent/data/resources.json<br/>8 resource types"]
+    end
+
+    subgraph AWS["AWS (Planned Deployment)"]
+        ACR["Amazon Bedrock AgentCore Runtime<br/>./kit deploy"]
+        BED["Amazon Bedrock<br/>Nova Pro — LLM"]
+        CW["CloudWatch Logs"]
+    end
+
+    UI -->|"HTTP /api/*"| API
+    API --> HA
+    HA --> TP
+    TP -->|"POST /v1/decide<br/>Bearer DECIDER_API_KEY"| DEC
+    HA --> Tools
+    Tools --> Data
+    HA -.->|"LLM chat path"| BED
+    HA -.->|"deployed agent"| ACR
+    ACR -.-> BED
+    ACR -.-> CW
+
+    style DEC fill:#1a2a10,stroke:#FF9900,color:#FF9900
+    style TP fill:#1a1a2e,stroke:#FF9900,color:#FF9900
+    style AWS fill:#111,stroke:#555,color:#888
+    style ACR stroke-dasharray: 5 5
+    style BED stroke-dasharray: 5 5
+    style CW stroke-dasharray: 5 5
